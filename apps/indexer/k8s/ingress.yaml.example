@@ -1,0 +1,37 @@
+# OPTIONAL, EXAMPLE ONLY — every real cluster's ingress controller/TLS setup differs
+# (nginx-ingress vs Traefik vs a cloud load balancer, cert-manager vs a pre-existing
+# wildcard cert, etc.), so this is a starting point to adapt, not something to apply
+# as-is. Written against ingress-nginx + cert-manager, the most common combination —
+# replace `your-domain.example.com`, the ingressClassName, and the cert-manager
+# annotation/issuer with whatever your cluster actually uses.
+#
+# Socket.IO's /subscribe path needs WebSocket upgrade headers passed through — the
+# two annotations below handle that for ingress-nginx specifically; a different
+# controller will need its own equivalent (see its docs for WebSocket support).
+#
+# NOT build/deploy-tested yet — see configmap.yaml's own note.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shiyld-indexer
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - your-domain.example.com
+      secretName: shiyld-indexer-tls
+  rules:
+    - host: your-domain.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shiyld-indexer
+                port:
+                  number: 4001

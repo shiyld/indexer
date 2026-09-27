@@ -1,0 +1,20 @@
+{
+  "name": "shiyld-indexer-workspace",
+  "private": true,
+  "packageManager": "pnpm@11.16.0",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "latest",
+    "typescript": "^5.3.3",
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=22.13.0",
+    "pnpm": ">=9.0.0"
+  }
+}

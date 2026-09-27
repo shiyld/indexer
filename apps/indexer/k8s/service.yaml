@@ -1,0 +1,12 @@
+# NOT build/deploy-tested yet — see configmap.yaml's own note.
+apiVersion: v1
+kind: Service
+metadata:
+  name: shiyld-indexer
+spec:
+  selector:
+    app: shiyld-indexer
+  ports:
+    - port: 4001
+      targetPort: 4001
+  type: ClusterIP

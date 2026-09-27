@@ -1,0 +1,13 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+# blake-hash is a native BLAKE-hash addon pulled in transitively by circomlibjs
+# (packages/indexer-core's Poseidon implementation) — a well-established package from
+# the iden3/circom dependency chain, not a random/unvetted one.
+# esbuild is a well-established, widely-used bundler — a transitive build tool
+# in this dependency graph (e.g. via tsx/ts-jest), not a random/unvetted package.
+allowBuilds:
+  blake-hash: true
+  esbuild: true
+minimumReleaseAgeExclude:
+  - '@shiyld/shared@1.0.1'

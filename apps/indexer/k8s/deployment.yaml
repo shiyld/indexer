@@ -1,0 +1,63 @@
+# NOT build/deploy-tested yet — see configmap.yaml's own note.
+#
+# Runs the combined single-process mode (the image's default CMD: one process runs
+# the listener + REST API + Socket.IO together) — the same mode docker-compose.yml
+# runs, just on K8s. This is deliberately NOT the clustered server+worker split
+# Shiyld's own indexer.shiyld.com instance uses (N stateless server replicas + one
+# singleton worker) — that's real production-scale infrastructure, out of scope for
+# a self-hoster's example manifests. `replicas: 1` reflects that: the combined mode
+# is a single process, so this Deployment should never be scaled past 1 as-is (its
+# in-process listener would run twice against the same database if it were).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shiyld-indexer
+  labels:
+    app: shiyld-indexer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shiyld-indexer
+  template:
+    metadata:
+      labels:
+        app: shiyld-indexer
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      # Only needed if you're pulling a private image — the published
+      # shiyld/indexer image on Docker Hub is public, no pull secret required
+      # by default.
+      # imagePullSecrets:
+      #   - name: your-registry-pull-secret
+      containers:
+        - name: indexer
+          image: shiyld/indexer:latest
+          ports:
+            - containerPort: 4001
+          envFrom:
+            - configMapRef:
+                name: shiyld-indexer-config
+            - secretRef:
+                name: shiyld-indexer-secrets
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4001
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4001
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"

@@ -1,0 +1,54 @@
+# OPTIONAL — only apply this if you want an in-cluster Redis for the indexer's
+# cache/Socket.IO adapter (mirrors docker-compose.yml's own bundled `redis` service).
+# Skip it entirely to run in-memory/single-instance mode (leave secret.yaml's
+# REDIS_URL empty), or point REDIS_URL at a Redis you already run/manage elsewhere
+# instead of applying this file.
+#
+# No PersistentVolumeClaim on purpose — Redis here is a cache/pub-sub layer only,
+# never a source of truth (see CLAUDE.md's cache-invalidation design), so losing its
+# contents on a pod restart just means a few cache misses until it refills, not data
+# loss. `replicas: 1` is intentional too — Redis Cluster/Sentinel setups are real
+# production HA concerns out of scope for these example manifests; if you need one,
+# point REDIS_URL at your own managed/clustered Redis instead of applying this file.
+#
+# NOT build/deploy-tested yet — see configmap.yaml's own note.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shiyld-indexer-redis
+  labels:
+    app: shiyld-indexer-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shiyld-indexer-redis
+  template:
+    metadata:
+      labels:
+        app: shiyld-indexer-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - containerPort: 6379
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shiyld-indexer-redis
+spec:
+  selector:
+    app: shiyld-indexer-redis
+  ports:
+    - port: 6379
+      targetPort: 6379
+  type: ClusterIP

@@ -1,0 +1,134 @@
+# Standalone docker-compose for self-hosting the Shiyld Indexer — this is the file a
+# third-party operator gets when they clone the public @shiyld/indexer repo (see
+# CLAUDE.md's "Indexer: Full Design & Public Distribution Plan" — this file is mirrored
+# out verbatim, same turbo-prune-based pipeline as the app's own Dockerfile).
+#
+# `docker compose up` alone is a genuinely complete, working instance with ZERO
+# required setup: no `.env` file needed, no signup, no paid RPC — it starts indexing
+# Base Sepolia immediately using @shiyld/shared's free public RPC default. Every value
+# below can be overridden either by creating a `.env` file next to this one (Compose
+# reads it automatically for the `${VAR:-default}` substitutions — this is separate
+# from Docker's own `env_file:` directive, which requires the file to exist; this file
+# deliberately never uses `env_file:` for that reason) or by exporting the same
+# variables in your shell before running `docker compose up`.
+#
+# This is the combined single-process mode (one process runs the listener + REST API +
+# Socket.IO together) — the image's default CMD, and the only mode this file runs.
+# Redis is bundled and wired in by default (see the `redis` service and `REDIS_URL`
+# below) — the indexer's own code treats REDIS_URL as fully optional (unset means
+# "single-instance, in-memory cache/socket adapter"), but a self-hoster reaching for
+# docker-compose specifically shouldn't have to go stand up an external Redis
+# separately just to get the Redis-backed cache/Socket.IO adapter path exercised.
+# Real horizontal scaling (multiple indexer replicas behind a load balancer, sharing
+# this same Redis) is still Shiyld's own K8s territory (indexer.shiyld.com) — see
+# CLAUDE.md's K8s reference guide (once written) — but this single `indexer` service
+# already runs Redis-backed rather than in-memory. To go back to zero-Redis/in-memory
+# mode instead, set `REDIS_URL=` (empty) in your `.env` — the bundled `redis`
+# container still starts either way (harmless, just unused) unless you also remove
+# it from this file.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: shiyld
+      POSTGRES_USER: shiyld
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shiyld}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shiyld"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  indexer:
+    image: ${INDEXER_IMAGE:-shiyld/indexer:latest}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      DATABASE_URL: postgresql://shiyld:${POSTGRES_PASSWORD:-shiyld}@postgres:5432/shiyld
+      # Points at the bundled `redis` service above by default — override in `.env`
+      # to point at an external Redis instead, or set to empty to run in-memory
+      # (single-instance) mode without touching this file.
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      INDEXER_HTTP_PORT: 4001
+      # Comma-separated network slugs from @shiyld/shared's NETWORKS registry — each
+      # one indexes with that registry's free public RPC by default. See .env.example
+      # for the full list and for how to override one network's RPC (e.g. to a paid
+      # provider) without touching this file.
+      INDEXER_NETWORKS: ${INDEXER_NETWORKS:-base-sepolia}
+      RPC_URL_BASE_SEPOLIA: ${RPC_URL_BASE_SEPOLIA:-}
+      RPC_URL_BASE: ${RPC_URL_BASE:-}
+      RPC_URL_ARBITRUM_SEPOLIA: ${RPC_URL_ARBITRUM_SEPOLIA:-}
+      RPC_URL_ARBITRUM: ${RPC_URL_ARBITRUM:-}
+      RPC_URL_ETHEREUM_SEPOLIA: ${RPC_URL_ETHEREUM_SEPOLIA:-}
+      RPC_URL_ETHEREUM: ${RPC_URL_ETHEREUM:-}
+      # "public" (default) serves every read endpoint to anyone; "restricted" requires
+      # one of INDEXER_API_KEYS on every request. See .env.example.
+      INDEXER_ACCESS_MODE: ${INDEXER_ACCESS_MODE:-public}
+      INDEXER_API_KEYS: ${INDEXER_API_KEYS:-}
+      INDEXER_RATE_LIMIT_PER_MINUTE: ${INDEXER_RATE_LIMIT_PER_MINUTE:-300}
+    ports:
+      - "${INDEXER_HTTP_PORT:-4001}:4001"
+    restart: unless-stopped
+
+  # --- Optional HTTPS front end -----------------------------------------------------
+  # Off by default — TLS is userland's responsibility by design (see CLAUDE.md: the
+  # indexer only ever speaks plain HTTP, matching every other Shiyld service). These
+  # two services are here for anyone who wants a working HTTPS setup without writing
+  # one from scratch. They never start on a plain `docker compose up` — only with:
+  #
+  #   DOMAIN=indexer.example.com CERTBOT_EMAIL=you@example.com \
+  #     docker compose --profile https up -d
+  #
+  # First run: certbot has no certificate yet, so nginx starts in HTTP-only mode
+  # (nginx/nginx.conf.example already only proxies plain HTTP + the ACME challenge
+  # path). Once nginx is up, request the first certificate:
+  #
+  #   docker compose --profile https run --rm certbot certonly --webroot \
+  #     -w /var/www/certbot -d "$DOMAIN" --email "$CERTBOT_EMAIL" --agree-tos --non-interactive
+  #
+  # then edit nginx/nginx.conf (copied from the .example alongside this file) to
+  # uncomment its HTTPS server block and restart nginx. See the setup guide (CLAUDE.md
+  # Phase 3 Documentation item) for the full walkthrough.
+  nginx:
+    image: nginx:1.27-alpine
+    profiles: ["https"]
+    depends_on:
+      - indexer
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - certbot_www:/var/www/certbot:ro
+      - certbot_certs:/etc/letsencrypt:ro
+    restart: unless-stopped
+
+  certbot:
+    image: certbot/certbot:latest
+    profiles: ["https"]
+    volumes:
+      - certbot_www:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+    # No long-running command by default — invoked on-demand (see the usage comment
+    # above) for the first certificate, and periodically for renewal (e.g. a host
+    # cron calling `docker compose --profile https run --rm certbot renew` plus an
+    # nginx reload — real automation is a userland choice, not built in here).
+    entrypoint: ["true"]
+
+volumes:
+  postgres_data:
+  certbot_www:
+  certbot_certs:

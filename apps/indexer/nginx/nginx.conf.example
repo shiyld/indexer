@@ -1,0 +1,57 @@
+# Reverse-proxy config for the optional `nginx` service in ../docker-compose.yml
+# (the `https` profile). Copy this file to `nginx.conf` next to it, replace every
+# occurrence of `your-domain.example.com` with your real domain, then follow the
+# usage steps in docker-compose.yml's own comment above the `nginx`/`certbot`
+# services to obtain a certificate and enable the HTTPS block below.
+#
+# The indexer itself only ever speaks plain HTTP (see CLAUDE.md) — this file is what
+# actually terminates TLS in front of it. Socket.IO's `/subscribe` path needs the
+# `Upgrade`/`Connection` headers forwarded explicitly or realtime subscriptions will
+# silently fail to connect over HTTPS even though plain REST calls work fine.
+
+# --- Always active: plain HTTP, ACME challenge + proxy ------------------------------
+# Kept serving real traffic on port 80 even after HTTPS is enabled below (not just
+# redirecting) — certbot's webroot renewal needs this path reachable indefinitely,
+# not just during initial setup.
+server {
+    listen 80;
+    server_name your-domain.example.com;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        proxy_pass http://indexer:4001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        # Required for Socket.IO's /subscribe path — without these two headers a
+        # WebSocket upgrade request is proxied as an ordinary HTTP request and the
+        # client silently falls back to (or fails on) long-polling.
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+
+# --- Enable once you have a real certificate (see docker-compose.yml's usage steps) -
+# server {
+#     listen 443 ssl;
+#     server_name your-domain.example.com;
+#
+#     ssl_certificate     /etc/letsencrypt/live/your-domain.example.com/fullchain.pem;
+#     ssl_certificate_key /etc/letsencrypt/live/your-domain.example.com/privkey.pem;
+#
+#     location / {
+#         proxy_pass http://indexer:4001;
+#         proxy_http_version 1.1;
+#         proxy_set_header Host $host;
+#         proxy_set_header X-Real-IP $remote_addr;
+#         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#         proxy_set_header X-Forwarded-Proto $scheme;
+#         proxy_set_header Upgrade $http_upgrade;
+#         proxy_set_header Connection "upgrade";
+#     }
+# }
