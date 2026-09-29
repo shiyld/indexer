@@ -16,7 +16,7 @@ data:
   # Comma-separated network slugs from @shiyld/shared's NETWORKS registry — each
   # defaults to that registry's free public RPC unless overridden (see
   # secret.yaml.example's RPC_URL_<SLUG> entries).
-  INDEXER_NETWORKS: "base-sepolia"
+  INDEXER_NETWORKS: "base-sepolia,arbitrum-sepolia,ethereum-sepolia"
   # "public" serves every read endpoint to anyone; "restricted" requires one of
   # secret.yaml.example's INDEXER_API_KEYS on every request.
   INDEXER_ACCESS_MODE: "public"

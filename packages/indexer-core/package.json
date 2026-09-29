@@ -1,6 +1,6 @@
 {
   "name": "@shiyld/indexer-core",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Shared indexer logic for the Shiyld privacy protocol — multi-network event ingestion, Merkle proof serving, and a versioned read API. Used by apps/indexer and embeddable directly into a third-party service.",
   "license": "MIT",
   "repository": {

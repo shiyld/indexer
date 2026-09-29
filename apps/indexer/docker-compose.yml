@@ -67,7 +67,7 @@ services:
       # one indexes with that registry's free public RPC by default. See .env.example
       # for the full list and for how to override one network's RPC (e.g. to a paid
       # provider) without touching this file.
-      INDEXER_NETWORKS: ${INDEXER_NETWORKS:-base-sepolia}
+      INDEXER_NETWORKS: ${INDEXER_NETWORKS:-base-sepolia,arbitrum-sepolia,ethereum-sepolia}
       RPC_URL_BASE_SEPOLIA: ${RPC_URL_BASE_SEPOLIA:-}
       RPC_URL_BASE: ${RPC_URL_BASE:-}
       RPC_URL_ARBITRUM_SEPOLIA: ${RPC_URL_ARBITRUM_SEPOLIA:-}

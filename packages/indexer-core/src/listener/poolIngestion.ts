@@ -64,7 +64,7 @@ export async function ingestPool(
   const networkSlug = shouldEmit ? networkByChainId(pool.chainId)?.slug : undefined;
 
   let eventsProcessed = 0;
-  let lastLeafEvent: { root: string; blockNumber: number } | null = null;
+  let lastLeafRoot: string | null = null;
 
   for (let chunkStart = fromBlock; chunkStart <= head; chunkStart += BLOCK_CHUNK_SIZE) {
     const chunkEnd = Math.min(chunkStart + BLOCK_CHUNK_SIZE - 1, head);
@@ -82,7 +82,7 @@ export async function ingestPool(
 
       if (event.type === "LeafInserted") {
         await persistLeaf(db, pool.chainId, pool.poolAddress, event.leafIndex, event.leaf, event.blockNumber);
-        lastLeafEvent = { root: event.root, blockNumber: event.blockNumber };
+        lastLeafRoot = event.root;
       }
     }
 
@@ -93,14 +93,18 @@ export async function ingestPool(
   await updateBalance(db, pool.chainId, pool.poolAddress, balance);
 
   let rootSanityCheck: PoolIngestionResult["rootSanityCheck"] = "skipped";
-  if (lastLeafEvent) {
-    const onChainRoot = await client.getRootAt(lastLeafEvent.blockNumber);
-    rootSanityCheck = onChainRoot.toLowerCase() === lastLeafEvent.root.toLowerCase() ? "ok" : "mismatch";
+  if (lastLeafRoot) {
+    // Read at `head`, not at the leaf's own block: every log up to `head` was just
+    // processed, so the on-chain root at `head` must equal the last leaf's root.
+    // A leaf's block can be days old on a first backfill, and non-archive RPCs
+    // (e.g. Arbitrum Sepolia's public endpoint) no longer serve that state.
+    const onChainRoot = await client.getRootAt(head);
+    rootSanityCheck = onChainRoot.toLowerCase() === lastLeafRoot.toLowerCase() ? "ok" : "mismatch";
     if (rootSanityCheck === "mismatch") {
       // eslint-disable-next-line no-console
       console.error(
         `[poolIngestion] ROOT MISMATCH for pool ${pool.poolAddress} (chain ${pool.chainId}) at block ` +
-          `${lastLeafEvent.blockNumber}: event said ${lastLeafEvent.root}, on-chain root() says ${onChainRoot}. ` +
+          `${head}: last LeafInserted event said ${lastLeafRoot}, on-chain root() says ${onChainRoot}. ` +
           `This indicates a missed or misordered event — do not trust this pool's Merkle proofs until resolved.`,
       );
     }

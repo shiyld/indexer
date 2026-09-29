@@ -39,6 +39,11 @@ function isRateLimitError(err: unknown): boolean {
     message.includes("504") ||
     message.includes("Gateway Timeout") ||
     message.includes("SERVER_ERROR") ||
+    // Dropped connections, found live 2026-09-28 indexing Ethereum Sepolia via
+    // publicnode: without these a pool failed its whole poll cycle on the first reset.
+    message.includes("ECONNRESET") ||
+    message.includes("ETIMEDOUT") ||
+    message.includes("socket hang up") ||
     // Found live 2026-09-22 chasing indexer.shiyld.com's persistent "degraded" health
     // status: chainClient.ts's getBalance() (an eth_call-based read, e.g. ERC-20
     // balanceOf) surfaces a rate-limited public-RPC response as an ethers

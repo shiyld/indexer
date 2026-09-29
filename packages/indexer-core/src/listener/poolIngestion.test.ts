@@ -42,21 +42,26 @@ function leafInsertedLog(blockNumber: number, logIndex: number, leafIndex: numbe
 /** A fake PoolChainClient — canned events per exact (fromBlock,toBlock) range,
  * so tests can assert both the parsing/persistence logic AND the exact chunk
  * boundaries ingestPool actually requests, without touching a real chain. */
-function makeFakeClient(eventsByRange: Map<string, EventLog[]>, root: string): { client: PoolChainClient; calls: Array<[number, number]> } {
+function makeFakeClient(
+  eventsByRange: Map<string, EventLog[]>,
+  root: string,
+): { client: PoolChainClient; calls: Array<[number, number]>; rootReads: number[] } {
   const calls: Array<[number, number]> = [];
+  const rootReads: number[] = [];
   const client: PoolChainClient = {
     async getEventsInRange(fromBlock, toBlock) {
       calls.push([fromBlock, toBlock]);
       return eventsByRange.get(`${fromBlock}-${toBlock}`) ?? [];
     },
-    async getRootAt() {
+    async getRootAt(blockTag) {
+      rootReads.push(blockTag);
       return root;
     },
     async getBalance() {
       return 123n;
     },
   };
-  return { client, calls };
+  return { client, calls, rootReads };
 }
 
 describeIfDb("ingestPool (real Postgres, fake chain client)", () => {
@@ -135,14 +140,24 @@ describeIfDb("ingestPool (real Postgres, fake chain client)", () => {
     // never crashes the caller's loop.
   });
 
-  it("chunks a range larger than the 10,000-block limit into multiple requests", async () => {
+  it("reads the on-chain root at head, not at the leaf's own (possibly pruned) block", async () => {
+    const events = new Map([[`${DEPLOYMENT_BLOCK}-1500`, [leafInsertedLog(1200, 0, 0, HASH_A)]]]);
+    const { client, rootReads } = makeFakeClient(events, HASH_A);
+
+    const result = await ingestPool(db, client, TEST_POOL, 1500);
+
+    expect(result.rootSanityCheck).toBe("ok");
+    expect(rootReads).toEqual([1500]);
+  });
+
+  it("chunks a range larger than the 1,000-block limit into multiple requests", async () => {
     const { client, calls } = makeFakeClient(new Map(), HASH_A);
-    await ingestPool(db, client, TEST_POOL, DEPLOYMENT_BLOCK + 25_000);
+    await ingestPool(db, client, TEST_POOL, DEPLOYMENT_BLOCK + 2_500);
 
     expect(calls).toEqual([
-      [DEPLOYMENT_BLOCK, DEPLOYMENT_BLOCK + 9_999],
-      [DEPLOYMENT_BLOCK + 10_000, DEPLOYMENT_BLOCK + 19_999],
-      [DEPLOYMENT_BLOCK + 20_000, DEPLOYMENT_BLOCK + 25_000],
+      [DEPLOYMENT_BLOCK, DEPLOYMENT_BLOCK + 999],
+      [DEPLOYMENT_BLOCK + 1_000, DEPLOYMENT_BLOCK + 1_999],
+      [DEPLOYMENT_BLOCK + 2_000, DEPLOYMENT_BLOCK + 2_500],
     ]);
   });
 

@@ -12,9 +12,9 @@ const ERC20_BALANCE_ABI = ["function balanceOf(address) view returns (uint256)"]
  */
 export interface PoolChainClient {
   getEventsInRange(fromBlock: number, toBlock: number): Promise<EventLog[]>;
-  /** A historical, block-pinned read — never the contract's live/current root — so
-   * comparing it against a specific past LeafInserted event's own root field is a
-   * genuine apples-to-apples check, not a race against blocks mined in between. */
+  /** A block-pinned read — never the contract's live/current root — so comparing it
+   * against the last LeafInserted event processed up to that block is a genuine
+   * apples-to-apples check, not a race against blocks mined in between. */
   getRootAt(blockTag: number): Promise<string>;
   getBalance(asset: string, poolAddress: string, blockTag: number): Promise<bigint>;
 }

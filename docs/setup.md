@@ -16,17 +16,19 @@ using `@shiyld/shared`'s free public RPC default. Check it came up:
 curl http://localhost:4001/health
 ```
 
-You should see `{"status":"healthy", ...}` with `networks.base-sepolia.state` moving
-from `"syncing"` to `"synced"` as it catches up to the chain head.
+You should see `{"status":"healthy", ...}`, with each network's `state`
+(`networks.base-sepolia`, `networks.arbitrum-sepolia`, `networks.ethereum-sepolia`)
+moving from `"syncing"` to `"synced"` as it catches up to the chain head.
 
 ## Customizing what it indexes
 
 Copy `.env.example` to `.env` next to `docker-compose.yml` and edit it. The two most
 common changes:
 
-- **Which network(s) to watch** — `INDEXER_NETWORKS=base-sepolia,arbitrum-sepolia`
-  (comma-separated slugs; a single instance can watch several networks at once, each
-  with its own independent listener loop).
+- **Which network(s) to watch** — `INDEXER_NETWORKS=base-sepolia` (comma-separated
+  slugs; the default is `base-sepolia,arbitrum-sepolia,ethereum-sepolia`). A single
+  instance can watch several networks at once, each with its own independent
+  listener loop.
 - **A dedicated RPC provider** instead of the free public default — see
   [`rpc-providers.md`](rpc-providers.md).
 

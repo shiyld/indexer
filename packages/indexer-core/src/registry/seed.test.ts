@@ -43,10 +43,17 @@ describeIfDb("seedRegistryFromSharedConstants (real Postgres + real @shiyld/shar
     expect(kinds).toEqual(["EpochManager", "ParameterRegistry", "PoolFactory", "TestSYD"]);
   });
 
-  it("registers no pools for a chain with no real deployment yet (Arbitrum Sepolia)", async () => {
+  it("registers each sidechain's pools under its own chainId, despite identical addresses", async () => {
     await seedRegistryFromSharedConstants(pool);
-    const pools = await getPools(pool, 421614);
-    expect(pools).toEqual([]);
+    const base = await getPools(pool, 84532);
+    const arbitrum = await getPools(pool, 421614);
+    const ethereum = await getPools(pool, 11155111);
+
+    expect(arbitrum).toHaveLength(base.length);
+    expect(ethereum).toHaveLength(base.length);
+    const addresses = (pools: typeof base) => pools.map((p) => p.poolAddress.toLowerCase()).sort();
+    expect(addresses(arbitrum)).toEqual(addresses(base));
+    expect(arbitrum.every((p) => p.chainId === 421614)).toBe(true);
   });
 
   it("is idempotent — re-running produces the same row counts, not duplicates", async () => {

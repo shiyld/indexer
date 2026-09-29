@@ -28,10 +28,10 @@ export interface NetworkRuntimeConfig {
  * defaults to that registry's free public endpoint (works out of the box, no
  * signup required); a self-hoster wanting a dedicated/paid provider overrides
  * per-network via RPC_URL_<SLUG_UPPERCASED_WITH_UNDERSCORES>, e.g.
- * RPC_URL_BASE_SEPOLIA.
+ * RPC_URL_BASE_SEPOLIA. Defaults to every testnet Shiyld has a live deployment on.
  */
 export function resolveNetworks(): NetworkRuntimeConfig[] {
-  const slugs = (process.env.INDEXER_NETWORKS || "base-sepolia")
+  const slugs = (process.env.INDEXER_NETWORKS || "base-sepolia,arbitrum-sepolia,ethereum-sepolia")
     .split(",")
     .map((slug) => slug.trim())
     .filter(Boolean);
