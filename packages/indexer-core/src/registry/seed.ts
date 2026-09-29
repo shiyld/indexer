@@ -67,7 +67,39 @@ export async function seedRegistryFromSharedConstants(pool: PgPool): Promise<See
       poolsSeeded++;
     }
 
+    // A pool that was registered before but is no longer in @shiyld/shared has been
+    // replaced by a redeploy (e.g. the 2026-09-29 soundness fix). Mark it superseded by
+    // the current pool for the same asset, so /pools stops presenting it as current.
+    // Only older pools: a newer one registered straight into the database (future
+    // deploy-script auto-registration) must survive a restart-time reseed.
+    const currentPools = Object.values(assetsForChain)
+      .map((a) => a.poolAddress)
+      .filter((a): a is string => !!a);
+    if (currentPools.length > 0) {
+      await pool.query(
+        `UPDATE pools AS old
+            SET is_current = false, superseded_by_pool_address = cur.pool_address
+           FROM pools AS cur
+          WHERE old.chain_id = $1 AND cur.chain_id = $1
+            AND lower(old.asset) = lower(cur.asset)
+            AND cur.pool_address = ANY($2::text[])
+            AND NOT (old.pool_address = ANY($2::text[]))
+            AND old.deployment_block < cur.deployment_block
+            AND old.is_current`,
+        [chainId, currentPools],
+      );
+    }
+
     if (chainAddresses) {
+      if (chainAddresses.poolFactory) {
+        await pool.query(
+          `UPDATE protocol_contracts
+              SET is_current = false, superseded_by_address = $2
+            WHERE chain_id = $1 AND kind = 'PoolFactory' AND address <> $2 AND is_current`,
+          [chainId, chainAddresses.poolFactory],
+        );
+      }
+
       // Every non-pool contract @shiyld/shared currently tracks for this chain.
       // syd/staking/governor are commonly unset (empty string) today — skipped, not
       // seeded as an empty address.

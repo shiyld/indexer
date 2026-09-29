@@ -10,4 +10,4 @@ allowBuilds:
   blake-hash: true
   esbuild: true
 minimumReleaseAgeExclude:
-  - '@shiyld/shared@1.0.1'
+  - '@shiyld/shared@1.0.2'

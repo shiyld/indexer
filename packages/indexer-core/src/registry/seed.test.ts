@@ -1,4 +1,5 @@
 import { Pool } from "pg";
+import { ASSETS } from "@shiyld/shared";
 import { runMigrations, defaultMigrationsDir } from "../db/migrate";
 import { seedRegistryFromSharedConstants } from "./seed";
 import { getPools, getProtocolContracts } from "./read";
@@ -28,12 +29,49 @@ describeIfDb("seedRegistryFromSharedConstants (real Postgres + real @shiyld/shar
     const pools = await getPools(pool, 84532);
     const eth = pools.find((p) => p.asset === "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE");
     expect(eth).toBeDefined();
-    expect(eth?.poolAddress).toBe("0xc41106C1051cFC48380C9936cD99f28DcE636080");
-    expect(eth?.verifiers.deposit).toBe("0xc4a091829E5DeE786fea9cCF51585ab816Def6ac");
+    expect(eth?.poolAddress).toBe("0x3FA6242b74297dD07BdC7dD662F132c2A27635A9");
+    expect(eth?.verifiers.deposit).toBe("0xBB409c02D2e5BFb936DFd19313AC6b6390FD2596");
     expect(eth?.isCurrent).toBe(true);
     expect(eth?.supportsFeeEnforcement).toBe(true);
     // Never fabricated — see the migration's own comment on this column.
     expect(eth?.circuitArtifactHash).toBeNull();
+  });
+
+  it("marks pools and a factory replaced by a redeploy as superseded, and leaves newer pools alone", async () => {
+    const ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+    const OLD_POOL = "0x1111111111111111111111111111111111111111";
+    const NEWER_POOL = "0x5555555555555555555555555555555555555555";
+    const OLD_FACTORY = "0x6666666666666666666666666666666666666666";
+    const insertPool = (address: string, block: number) =>
+      pool.query(
+        `INSERT INTO pools (chain_id, pool_address, asset, version, deployment_block, deposit_verifier, transfer_verifier, withdraw_verifier, is_current, superseded_by_pool_address)
+         VALUES (84532, $1, $2, 'v1', $3, '0x2222222222222222222222222222222222222222', '0x3333333333333333333333333333333333333333', '0x4444444444444444444444444444444444444444', true, NULL)`,
+        [address, ETH, block],
+      );
+    // An older ETH pool from before a redeploy, and a newer one registered straight
+    // into the database (as future deploy-script auto-registration would).
+    await insertPool(OLD_POOL, 1);
+    await insertPool(NEWER_POOL, 999_999_999);
+    await pool.query(
+      `INSERT INTO protocol_contracts (chain_id, address, kind, deployment_block, is_current, superseded_by_address)
+       VALUES (84532, $1, 'PoolFactory', 1, true, NULL)`,
+      [OLD_FACTORY],
+    );
+
+    await seedRegistryFromSharedConstants(pool);
+
+    const pools = await getPools(pool, 84532);
+    const byAddress = (a: string) => pools.find((p) => p.poolAddress === a);
+    const currentEth = byAddress("0x3FA6242b74297dD07BdC7dD662F132c2A27635A9");
+    expect(currentEth?.isCurrent).toBe(true);
+    expect(byAddress(OLD_POOL)?.isCurrent).toBe(false);
+    expect(byAddress(OLD_POOL)?.supersededByPoolAddress).toBe("0x3FA6242b74297dD07BdC7dD662F132c2A27635A9");
+    expect(byAddress(NEWER_POOL)?.isCurrent).toBe(true);
+
+    const contracts = await getProtocolContracts(pool, 84532);
+    const oldFactory = contracts.find((c) => c.address === OLD_FACTORY);
+    expect(oldFactory?.isCurrent).toBe(false);
+    expect(oldFactory?.supersededByAddress).toBe("0x7F1Ab0a9cEeD5280e53D8082718928D35C25f2FE");
   });
 
   it("seeds PoolFactory/EpochManager/ParameterRegistry/TestSYD as protocol contracts", async () => {
@@ -43,17 +81,18 @@ describeIfDb("seedRegistryFromSharedConstants (real Postgres + real @shiyld/shar
     expect(kinds).toEqual(["EpochManager", "ParameterRegistry", "PoolFactory", "TestSYD"]);
   });
 
-  it("registers each sidechain's pools under its own chainId, despite identical addresses", async () => {
+  it("registers each chain's pools under its own chainId, matching @shiyld/shared for that chain", async () => {
     await seedRegistryFromSharedConstants(pool);
-    const base = await getPools(pool, 84532);
-    const arbitrum = await getPools(pool, 421614);
-    const ethereum = await getPools(pool, 11155111);
-
-    expect(arbitrum).toHaveLength(base.length);
-    expect(ethereum).toHaveLength(base.length);
-    const addresses = (pools: typeof base) => pools.map((p) => p.poolAddress.toLowerCase()).sort();
-    expect(addresses(arbitrum)).toEqual(addresses(base));
-    expect(arbitrum.every((p) => p.chainId === 421614)).toBe(true);
+    const addresses = (pools: { poolAddress: string }[]) => pools.map((p) => p.poolAddress.toLowerCase()).sort();
+    for (const chainId of [84532, 421614, 11155111]) {
+      const pools = await getPools(pool, chainId);
+      const expected = Object.values(ASSETS[chainId])
+        .map((a) => a.poolAddress)
+        .filter((a): a is string => !!a);
+      expect(pools).toHaveLength(11);
+      expect(addresses(pools)).toEqual(addresses(expected.map((poolAddress) => ({ poolAddress }))));
+      expect(pools.every((p) => p.chainId === chainId)).toBe(true);
+    }
   });
 
   it("is idempotent — re-running produces the same row counts, not duplicates", async () => {
