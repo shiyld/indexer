@@ -109,6 +109,13 @@ export async function seedRegistryFromSharedConstants(pool: PgPool): Promise<See
         { kind: "ParameterRegistry", address: chainAddresses.parameterRegistry },
         { kind: "SYD", address: chainAddresses.syd },
         { kind: "Staking", address: chainAddresses.staking },
+        // Revised staking plan (STAKING-AND-TREASURY-PLAN.md §6): Base-only staking
+        // settings + emission schedule, a Treasury per chain, and the Uniswap v2 SYD/WETH
+        // pair (the LP token Staking accepts).
+        { kind: "StakingParameters", address: chainAddresses.stakingParameters },
+        { kind: "EmissionSchedule", address: chainAddresses.emissionSchedule },
+        { kind: "Treasury", address: chainAddresses.treasury },
+        { kind: "SydWethPair", address: chainAddresses.sydWethPair },
         { kind: "Governor", address: chainAddresses.governor },
       ];
       for (const { kind, address } of candidates) {

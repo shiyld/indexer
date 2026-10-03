@@ -32,7 +32,7 @@ describeIfDb("RegistryWatcher (real Postgres, real polling)", () => {
     watcher = new RegistryWatcher(pool, [84532]);
     const snapshot = await watcher.start();
     expect(snapshot.pools.length).toBeGreaterThanOrEqual(11);
-    expect(snapshot.contracts.length).toBe(4);
+    expect(snapshot.contracts.length).toBe(9); // core 4 + Staking, StakingParameters, EmissionSchedule, Treasury, SydWethPair
   });
 
   it("picks up a newly-registered pool on the next poll, without a restart, and fires onChange", async () => {
