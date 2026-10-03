@@ -7,7 +7,10 @@ export const MERKLE_TREE_DEPTH = 20;
 /**
  * GET /<network>/pools/:poolAddress/merkle-proof/:leafIndex — one depth-20 sibling
  * path, bottom-up, matching MerkleTree.sol's own incremental tree exactly.
- * `treeSize` is the leaf count this proof was computed against; a cached copy of
+ * `leafIndex` is global across the pool's trees; `treeNumber` is the tree the leaf sits
+ * in (pools roll over to a new tree when one fills — pre-mainnet review R1), and
+ * `root` is that tree's root. `treeSize` is the pool's total leaf count this proof was
+ * computed against; a cached copy of
  * this response is only valid for that exact treeSize (see CLAUDE.md's caching
  * design — a later leaf insertion can change an earlier leaf's sibling path).
  */
@@ -18,6 +21,7 @@ export const MerkleProofResponseSchema = z.object({
   siblings: z.array(Bytes32Schema).length(MERKLE_TREE_DEPTH),
   pathIndices: z.array(z.union([z.literal(0), z.literal(1)])).length(MERKLE_TREE_DEPTH),
   root: Bytes32Schema,
+  treeNumber: z.number().int().nonnegative(),
   treeSize: z.number().int().nonnegative(),
 });
 export type MerkleProofResponse = z.infer<typeof MerkleProofResponseSchema>;

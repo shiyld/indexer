@@ -1,6 +1,6 @@
 {
   "name": "@shiyld/indexer",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
   "description": "Standalone, self-hostable Shiyld indexer server — see packages/indexer-core for the embeddable library.",
   "scripts": {
@@ -14,7 +14,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@shiyld/shared": "^1.0.2",
+    "@shiyld/shared": "^1.0.3",
     "@shiyld/indexer-core": "workspace:*",
     "pg": "^8.11.0",
     "dotenv": "^16.0.0"

@@ -68,7 +68,7 @@ export type { NetworkConfig, MultiNetworkListenerOptions } from "./listener/mult
 export { saveNetworkStatus, getPersistedNetworkStatuses } from "./listener/networkStatusStore";
 export { startStatusPersistence } from "./listener/statusPersistence";
 
-export { createMerkleTree, toHex32, fromHex } from "./merkle/tree";
+export { createMerkleTree, treeNumberOf, toHex32, fromHex } from "./merkle/tree";
 export type { MerkleTreeInstance } from "./merkle/tree";
 export { getPoseidon } from "./merkle/poseidon";
 export type { Poseidon2 } from "./merkle/poseidon";

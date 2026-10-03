@@ -29,8 +29,8 @@ describeIfDb("seedRegistryFromSharedConstants (real Postgres + real @shiyld/shar
     const pools = await getPools(pool, 84532);
     const eth = pools.find((p) => p.asset === "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE");
     expect(eth).toBeDefined();
-    expect(eth?.poolAddress).toBe("0x3FA6242b74297dD07BdC7dD662F132c2A27635A9");
-    expect(eth?.verifiers.deposit).toBe("0xBB409c02D2e5BFb936DFd19313AC6b6390FD2596");
+    expect(eth?.poolAddress).toBe("0x21565437890Ea3932077739ad88630d7008504b1");
+    expect(eth?.verifiers.deposit).toBe("0x8eCC87BC1dD25e0676285fC41BAa781df4E5Aabd");
     expect(eth?.isCurrent).toBe(true);
     expect(eth?.supportsFeeEnforcement).toBe(true);
     // Never fabricated — see the migration's own comment on this column.
@@ -62,16 +62,16 @@ describeIfDb("seedRegistryFromSharedConstants (real Postgres + real @shiyld/shar
 
     const pools = await getPools(pool, 84532);
     const byAddress = (a: string) => pools.find((p) => p.poolAddress === a);
-    const currentEth = byAddress("0x3FA6242b74297dD07BdC7dD662F132c2A27635A9");
+    const currentEth = byAddress("0x21565437890Ea3932077739ad88630d7008504b1");
     expect(currentEth?.isCurrent).toBe(true);
     expect(byAddress(OLD_POOL)?.isCurrent).toBe(false);
-    expect(byAddress(OLD_POOL)?.supersededByPoolAddress).toBe("0x3FA6242b74297dD07BdC7dD662F132c2A27635A9");
+    expect(byAddress(OLD_POOL)?.supersededByPoolAddress).toBe("0x21565437890Ea3932077739ad88630d7008504b1");
     expect(byAddress(NEWER_POOL)?.isCurrent).toBe(true);
 
     const contracts = await getProtocolContracts(pool, 84532);
     const oldFactory = contracts.find((c) => c.address === OLD_FACTORY);
     expect(oldFactory?.isCurrent).toBe(false);
-    expect(oldFactory?.supersededByAddress).toBe("0x7F1Ab0a9cEeD5280e53D8082718928D35C25f2FE");
+    expect(oldFactory?.supersededByAddress).toBe("0xDd1b25114b63b43b65d8eEf2356395FabD2FaaB4");
   });
 
   it("seeds PoolFactory/EpochManager/ParameterRegistry/TestSYD as protocol contracts", async () => {

@@ -28,9 +28,10 @@ export function contractsCacheKey(chainId: number): string {
 /** Embeds treeSize directly in the key — a later leaf insertion naturally
  * produces a different key rather than needing separate staleness bookkeeping,
  * exactly the design decided in CLAUDE.md: "a later insertion can never serve a
- * stale proof." */
+ * stale proof." `v2` marks the response shape with `treeNumber` (tree rollover), so a
+ * proof cached by an older indexer is never served without it. */
 export function merkleProofCacheKey(chainId: number, poolAddress: string, leafIndex: number, treeSize: number): string {
-  return `merkle-proof:${chainId}:${poolAddress}:${leafIndex}:${treeSize}`;
+  return `merkle-proof:v2:${chainId}:${poolAddress}:${leafIndex}:${treeSize}`;
 }
 
 export async function getPoolsCached(cache: CacheAdapter, db: PgPool, chainId: number, asset?: string): Promise<PoolRecord[]> {

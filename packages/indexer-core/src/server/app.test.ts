@@ -58,7 +58,7 @@ describeIfDb("createIndexerApp (real Postgres, real seeded data)", () => {
 
       expect(res.status).toBe(200);
       expect(res.body.pools.length).toBeGreaterThanOrEqual(11);
-      expect(res.body.pools.some((p: { poolAddress: string }) => p.poolAddress === "0x3FA6242b74297dD07BdC7dD662F132c2A27635A9")).toBe(true);
+      expect(res.body.pools.some((p: { poolAddress: string }) => p.poolAddress === "0x21565437890Ea3932077739ad88630d7008504b1")).toBe(true);
     });
 
     it("filters by asset when ?asset= is given", async () => {
@@ -88,7 +88,7 @@ describeIfDb("createIndexerApp (real Postgres, real seeded data)", () => {
   });
 
   describe("GET /:network/pools/:poolAddress/events", () => {
-    const POOL = "0x3FA6242b74297dD07BdC7dD662F132c2A27635A9";
+    const POOL = "0x21565437890Ea3932077739ad88630d7008504b1";
 
     beforeEach(async () => {
       await db.query(
@@ -122,7 +122,7 @@ describeIfDb("createIndexerApp (real Postgres, real seeded data)", () => {
   });
 
   describe("GET /:network/pools/:poolAddress/merkle-proof/:leafIndex", () => {
-    const POOL = "0x3FA6242b74297dD07BdC7dD662F132c2A27635A9";
+    const POOL = "0x21565437890Ea3932077739ad88630d7008504b1";
 
     beforeEach(async () => {
       for (let i = 0; i < 3; i++) {
@@ -163,14 +163,14 @@ describeIfDb("createIndexerApp (real Postgres, real seeded data)", () => {
       for (let i = 0; i < 3; i++) {
         await db.query(`INSERT INTO merkle_leaves (chain_id, pool_address, leaf_index, leaf, block_number) VALUES ($1, $2, $3, $4, 100)`, [
           CHAIN_ID,
-          "0x3FA6242b74297dD07BdC7dD662F132c2A27635A9",
+          "0x21565437890Ea3932077739ad88630d7008504b1",
           i,
           "0x" + (i + 1).toString(16).padStart(64, "0"),
         ]);
       }
       const app = createIndexerApp({ db, getNetworkStatuses: () => [], cache: createMemoryCache() });
-      const first = await request(app).get("/base-sepolia/pools/0x3FA6242b74297dD07BdC7dD662F132c2A27635A9/merkle-proof/1");
-      const second = await request(app).get("/base-sepolia/pools/0x3FA6242b74297dD07BdC7dD662F132c2A27635A9/merkle-proof/1");
+      const first = await request(app).get("/base-sepolia/pools/0x21565437890Ea3932077739ad88630d7008504b1/merkle-proof/1");
+      const second = await request(app).get("/base-sepolia/pools/0x21565437890Ea3932077739ad88630d7008504b1/merkle-proof/1");
       expect(second.body).toEqual(first.body);
     });
   });

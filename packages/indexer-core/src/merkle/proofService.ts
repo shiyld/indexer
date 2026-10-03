@@ -38,13 +38,15 @@ export async function computeMerkleProof(
   poolAddress: string,
   leafIndex: number,
 ): Promise<MerkleProofResponse> {
-  const { rows } = await db.query<{ leaf_index: number; leaf: string }>(
+  const { rows } = await db.query<{ leaf_index: string | number; leaf: string }>(
     `SELECT leaf_index, leaf FROM merkle_leaves WHERE chain_id = $1 AND pool_address = $2 ORDER BY leaf_index`,
     [chainId, poolAddress],
   );
 
+  // leaf_index is BIGINT, which pg returns as a string.
   rows.forEach((row, i) => {
-    if (row.leaf_index !== i) throw new MerkleLeafGapError(poolAddress, i, row.leaf_index);
+    const index = Number(row.leaf_index);
+    if (index !== i) throw new MerkleLeafGapError(poolAddress, i, index);
   });
 
   if (leafIndex < 0 || leafIndex >= rows.length) {
@@ -64,6 +66,7 @@ export async function computeMerkleProof(
     siblings: proof.siblings,
     pathIndices: proof.pathIndices as (0 | 1)[],
     root: proof.root,
+    treeNumber: proof.treeNumber,
     treeSize: tree.leafCount(),
   };
 }

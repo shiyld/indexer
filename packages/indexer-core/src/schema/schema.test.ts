@@ -153,6 +153,7 @@ describe("MerkleProofResponseSchema", () => {
       siblings: Array(MERKLE_TREE_DEPTH).fill(HASH),
       pathIndices: Array(MERKLE_TREE_DEPTH).fill(0),
       root: HASH,
+      treeNumber: 0,
       treeSize: 6,
     };
     expect(() => MerkleProofResponseSchema.parse(valid)).not.toThrow();
@@ -169,6 +170,7 @@ describe("MerkleProofResponseSchema", () => {
       siblings: Array(MERKLE_TREE_DEPTH).fill(HASH),
       pathIndices: [...Array(MERKLE_TREE_DEPTH - 1).fill(0), 2],
       root: HASH,
+      treeNumber: 0,
       treeSize: 1,
     };
     expect(() => MerkleProofResponseSchema.parse(invalid)).toThrow();

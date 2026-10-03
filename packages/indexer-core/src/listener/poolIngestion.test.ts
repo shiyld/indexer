@@ -91,7 +91,7 @@ describeIfDb("ingestPool (real Postgres, fake chain client)", () => {
     expect(eventRows.map((r) => r.event_type)).toEqual(["Deposit", "LeafInserted"]);
 
     const { rows: leafRows } = await db.query("SELECT leaf_index, leaf FROM merkle_leaves");
-    expect(leafRows).toEqual([{ leaf_index: 0, leaf: HASH_A }]);
+    expect(leafRows).toEqual([{ leaf_index: "0", leaf: HASH_A }]); // BIGINT comes back as a string
 
     const { rows: statRows } = await db.query("SELECT deposit_count, leaf_count, current_balance FROM pool_stats");
     expect(statRows[0]).toMatchObject({ deposit_count: "1", leaf_count: "1", current_balance: "123" });

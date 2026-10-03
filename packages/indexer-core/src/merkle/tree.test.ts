@@ -72,4 +72,28 @@ describe("createMerkleTree (real Poseidon)", () => {
     expect(verifyProof(poseidon2, 1n, proof.siblings, proof.pathIndices, proof.root)).toBe(true);
     expect(proof.root).toBe(toHex32(rootAfterTwo));
   });
+
+  // Pre-mainnet review R1: pools roll over to a new tree when one fills. Depth-3 trees
+  // keep this cheap; each tree must match an independent tree of just its own leaves.
+  it("rolls over to a new tree: global indices, per-tree roots and proofs", () => {
+    const DEPTH = 3;
+    const PER_TREE = 8;
+    const tree = createMerkleTree(poseidon2, DEPTH);
+    const all: bigint[] = [];
+    for (let i = 0; i < PER_TREE * 2 + 3; i++) {
+      const leaf = BigInt(700 + i);
+      expect(tree.insert(leaf)).toBe(i);
+      all.push(leaf);
+      const t = Math.floor(i / PER_TREE);
+      const own = createMerkleTree(poseidon2, DEPTH);
+      all.slice(t * PER_TREE, i + 1).forEach((l) => own.insert(l));
+      expect(tree.root()).toBe(own.root());
+    }
+    for (let i = 0; i < all.length; i++) {
+      const proof = tree.proofForLeaf(i);
+      expect(proof.treeNumber).toBe(Math.floor(i / PER_TREE));
+      expect(proof.root).toBe(toHex32(tree.rootOfTree(proof.treeNumber)));
+      expect(verifyProof(poseidon2, all[i], proof.siblings, proof.pathIndices, proof.root)).toBe(true);
+    }
+  });
 });
