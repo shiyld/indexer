@@ -24,8 +24,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/indexer-core
       '@shiyld/shared':
-        specifier: ^1.0.4
-        version: 1.0.4
+        specifier: ^1.0.5
+        version: 1.0.5
       dotenv:
         specifier: ^16.0.0
         version: 16.6.1
@@ -49,8 +49,8 @@ importers:
   packages/indexer-core:
     dependencies:
       '@shiyld/shared':
-        specifier: ^1.0.4
-        version: 1.0.4
+        specifier: ^1.0.5
+        version: 1.0.5
       '@socket.io/redis-adapter':
         specifier: ^8.3.0
         version: 8.3.0(socket.io-adapter@2.5.8(supports-color@8.1.1))(supports-color@8.1.1)
@@ -677,8 +677,8 @@ packages:
     peerDependencies:
       '@redis/client': ^1.0.0
 
-  '@shiyld/shared@1.0.4':
-    resolution: {integrity: sha512-mxNnOQCEj2GJnRHhKTXqoGf3UbMaclrlZAS/32+ra3F3sYbyzt7Hf8GHKfExdnyl1TIdJWGZUjEwVe6X41dM9g==}
+  '@shiyld/shared@1.0.5':
+    resolution: {integrity: sha512-DptafNLxXaIFW7u9c1lEeYItbgEZW+Pgp0NTqyaO8qeovdQOZIAfgRgXCfv5EaT6dJghmn4q9EHeruGsrbKzNA==}
 
   '@sinclair/typebox@0.27.12':
     resolution: {integrity: sha512-hhyNJ+nbR6ZR7pToHvllEFun9TL0sbL+tk/ON75lo+Xas054uez98qRbsuNt7MBCyZKK4+8Yli/OAGZhmfBZ/g==}
@@ -3039,7 +3039,7 @@ snapshots:
     dependencies:
       '@redis/client': 1.6.1
 
-  '@shiyld/shared@1.0.4': {}
+  '@shiyld/shared@1.0.5': {}
 
   '@sinclair/typebox@0.27.12': {}
 

@@ -29,7 +29,7 @@ describeIfDb("seedRegistryFromSharedConstants (real Postgres + real @shiyld/shar
     const pools = await getPools(pool, 84532);
     const eth = pools.find((p) => p.asset === "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE");
     expect(eth).toBeDefined();
-    expect(eth?.poolAddress).toBe("0x2C4eFB36751D6D2594ec5F1eB4e49b1142C6BFEc");
+    expect(eth?.poolAddress).toBe("0xcd04e0F287A0bEbDEDEBFdFCd83ff5F4973C35bD");
     expect(eth?.verifiers.deposit).toBe("0x8eCC87BC1dD25e0676285fC41BAa781df4E5Aabd");
     expect(eth?.isCurrent).toBe(true);
     expect(eth?.supportsFeeEnforcement).toBe(true);
@@ -62,16 +62,16 @@ describeIfDb("seedRegistryFromSharedConstants (real Postgres + real @shiyld/shar
 
     const pools = await getPools(pool, 84532);
     const byAddress = (a: string) => pools.find((p) => p.poolAddress === a);
-    const currentEth = byAddress("0x2C4eFB36751D6D2594ec5F1eB4e49b1142C6BFEc");
+    const currentEth = byAddress("0xcd04e0F287A0bEbDEDEBFdFCd83ff5F4973C35bD");
     expect(currentEth?.isCurrent).toBe(true);
     expect(byAddress(OLD_POOL)?.isCurrent).toBe(false);
-    expect(byAddress(OLD_POOL)?.supersededByPoolAddress).toBe("0x2C4eFB36751D6D2594ec5F1eB4e49b1142C6BFEc");
+    expect(byAddress(OLD_POOL)?.supersededByPoolAddress).toBe("0xcd04e0F287A0bEbDEDEBFdFCd83ff5F4973C35bD");
     expect(byAddress(NEWER_POOL)?.isCurrent).toBe(true);
 
     const contracts = await getProtocolContracts(pool, 84532);
     const oldFactory = contracts.find((c) => c.address === OLD_FACTORY);
     expect(oldFactory?.isCurrent).toBe(false);
-    expect(oldFactory?.supersededByAddress).toBe("0x8b84f7ECDF1eF1938f14484A5130E31B6d49be8C");
+    expect(oldFactory?.supersededByAddress).toBe("0x7E9C05e57c45b8576FDF9bfe88B1c1d1D91e3079");
   });
 
   it("seeds the core, staking-plan and Uniswap pair contracts as protocol contracts", async () => {
